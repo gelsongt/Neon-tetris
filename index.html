@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEON TETRIS | Futuristic Arcade Experience</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&display=swap');
+        
+        :root {
+            --neon-blue: #0ff0fc;
+            --neon-pink: #ff2ced;
+            --neon-purple: #9d00ff;
+            --neon-green: #00ff7f;
+            --neon-yellow: #fff01f;
+            --dark-bg: #0a0a1a;
+        }
+        
+        body {
+            font-family: 'Orbitron', sans-serif;
+            background-color: var(--dark-bg);
+            color: white;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+        
+        .game-container {
+            border: 3px solid var(--neon-blue);
+            box-shadow: 0 0 30px rgba(15, 240, 252, 0.3);
+            position: relative;
+            background: rgba(10, 10, 26, 0.7);
+            backdrop-filter: blur(5px);
+        }
+        
+        .game-container::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                linear-gradient(rgba(15, 240, 252, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(15, 240, 252, 0.05) 1px, transparent 1px);
+            background-size: 20px 20px;
+            pointer-events: none;
+        }
+        
+        .neon-text {
+            text-shadow: 0 0 10px currentColor;
+        }
+        
+        .neon-blue { color: var(--neon-blue); }
+        .neon-pink { color: var(--neon-pink); }
+        .neon-purple { color: var(--neon-purple); }
+        .neon-green { color: var(--neon-green); }
+        .neon-yellow { color: var(--neon-yellow); }
+        
+        .glow {
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes glow {
+            from {
+                text-shadow: 0 0 5px currentColor;
+            }
+            to {
+                text-shadow: 0 0 15px currentColor, 0 0 20px currentColor;
+            }
+        }
+        
+        .panel {
+            background: rgba(15, 15, 35, 0.7);
+            border: 1px solid rgba(15, 240, 252, 0.2);
+            backdrop-filter: blur(5px);
+            box-shadow: 0 0 20px rgba(15, 240, 252, 0.1);
+        }
+        
+        .button-futuristic {
+            position: relative;
+            background: linear-gradient(145deg, rgba(15, 240, 252, 0.1), rgba(157, 0, 255, 0.1));
+            border: 1px solid var(--neon-blue);
+            color: white;
+            padding: 12px 24px;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 500;
+            cursor: pointer;
+            overflow: hidden;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .button-futuristic:hover {
+            background: linear-gradient(145deg, rgba(15, 240, 252, 0.2), rgba(157, 0, 255, 0.2));
+            box-shadow: 0 0 15px rgba(15, 240, 252, 0.3);
+        }
+        
+        .button-futuristic:active {
+            transform: translateY(2px);
+        }
+        
+        .button-futuristic::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(15, 240, 252, 0.4), transparent);
+            transition: all 0.5s;
+        }
+        
+        .button-futuristic:hover::before {
+            left: 100%;
+        }
+        
+        /* Tetris piece colors */
+        .piece-i { background-color: var(--neon-blue); }
+        .piece-j { background-color: var(--neon-purple); }
+        .piece-l { background-color: var(--neon-yellow); }
+        .piece-o { background-color: var(--neon-green); }
+        .piece-s { background-color: var(--neon-pink); }
+        .piece-t { background: linear-gradient(145deg, var(--neon-purple), var(--neon-blue)); }
+        .piece-z { background: linear-gradient(145deg, var(--neon-pink), var(--neon-yellow)); }
+        
+        /* Game board grid */
+        .board-cell {
+            width: 30px;
+            height: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-sizing: border-box;
+        }
+        
+        /* Game over overlay */
+        .game-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            backdrop-filter: blur(5px);
+        }
+        
+        .leaderboard-item {
+            transition: all 0.3s;
+        }
+        
+        .leaderboard-item:hover {
+            background: rgba(15, 240, 252, 0.05);
+            transform: translateX(5px);
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(10, 10, 26, 0.5);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--neon-blue);
+            border-radius: 4px;
+        }
+        
+        /* Pulse animation for score */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .pulse {
+            animation: pulse 0.5s ease;
+        }
+        
+        /* Floating particles background */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+        
+        .particle {
+            position: absolute;
+            background: var(--neon-blue);
+            border-radius: 50%;
+            opacity: 0.3;
+            animation: float linear infinite;
+        }
+        
+        @keyframes float {
+            0% { transform: translateY(0) translateX(0); opacity: 0; }
+            50% { opacity: 0.5; }
+            100% { transform: translateY(-100vh) translateX(100px); opacity: 0; }
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center p-4 md:p-8">
+    <!-- Floating particles background -->
+    <div class="particles" id="particles"></div>
+    
+    <!-- Header -->
+    <header class="text-center mb-8 md:mb-12">
+        <h1 class="text-4xl md:text-6xl font-bold neon-text neon-blue glow mb-4">NEON TETRIS</h1>
+        <p class="text-lg md:text-xl opacity-80">Futuristic Arcade Experience</p>
+    </header>
+    
+    <!-- Main game area -->
+    <div class="flex flex-col lg:flex-row gap-8 w-full max-w-6xl">
+        <!-- Game board -->
+        <div class="flex-1 flex flex-col items-center">
+            <div class="game-container rounded-lg overflow-hidden mb-4" style="width: 300px; height: 600px;">
+                <canvas id="gameCanvas" width="300" height="600" class="w-full h-full"></canvas>
+                <div id="gameOverlay" class="game-overlay hidden">
+                    <h2 class="text-4xl font-bold neon-text neon-pink mb-6">GAME OVER</h2>
+                    <button id="restartBtn" class="button-futuristic mt-4">
+                        <i class="fas fa-redo mr-2"></i> PLAY AGAIN
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Game stats -->
+            <div class="flex justify-between w-full max-w-md mb-6">
+                <div class="panel rounded-lg p-4 text-center flex-1 mx-2">
+                    <div class="text-sm uppercase tracking-wider opacity-70 mb-1">Score</div>
+                    <div id="score" class="text-2xl font-bold neon-text neon-green">0</div>
+                </div>
+                <div class="panel rounded-lg p-4 text-center flex-1 mx-2">
+                    <div class="text-sm uppercase tracking-wider opacity-70 mb-1">Level</div>
+                    <div id="level" class="text-2xl font-bold neon-text neon-blue">1</div>
+                </div>
+                <div class="panel rounded-lg p-4 text-center flex-1 mx-2">
+                    <div class="text-sm uppercase tracking-wider opacity-70 mb-1">Lines</div>
+                    <div id="lines" class="text-2xl font-bold neon-text neon-pink">0</div>
+                </div>
+            </div>
+            
+            <!-- Game controls -->
+            <div class="flex flex-wrap justify-center gap-4 mb-6">
+                <button id="startBtn" class="button-futuristic">
+                    <i class="fas fa-play mr-2"></i> START
+                </button>
+                <button id="pauseBtn" class="button-futuristic" disabled>
+                    <i class="fas fa-pause mr-2"></i> PAUSE
+                </button>
+                <button id="soundBtn" class="button-futuristic">
+                    <i class="fas fa-volume-up mr-2"></i> SOUND
+                </button>
+            </div>
+        </div>
+        
+        <!-- Side panel -->
+        <div class="flex-1 max-w-md">
+            <!-- Next piece -->
+            <div class="panel rounded-lg p-6 mb-6">
+                <h2 class="text-xl font-bold neon-text neon-purple mb-4 flex items-center">
+                    <i class="fas fa-chevron-up mr-3"></i> NEXT PIECE
+                </h2>
+                <div class="flex justify-center">
+                    <div class="rounded-lg overflow-hidden" style="width: 120px; height: 120px; background: rgba(15, 240, 252, 0.05);">
+                        <canvas id="nextPieceCanvas" width="120" height="120"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Leaderboard -->
+            <div class="panel rounded-lg p-6 mb-6 h-64 overflow-y-auto">
+                <h2 class="text-xl font-bold neon-text neon-yellow mb-4 flex items-center">
+                    <i class="fas fa-trophy mr-3"></i> LEADERBOARD
+                </h2>
+                <div id="leaderboard" class="space-y-3">
+                    <div class="leaderboard-item flex justify-between items-center py-2 px-3 rounded">
+                        <span class="text-gray-400">No scores yet</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Controls -->
+            <div class="panel rounded-lg p-6">
+                <h2 class="text-xl font-bold neon-text neon-green mb-4 flex items-center">
+                    <i class="fas fa-gamepad mr-3"></i> CONTROLS
+                </h2>
+                <div class="grid grid-cols-2 gap-3 text-sm">
+                    <div class="flex items-center p-2 rounded bg-gray-900 bg-opacity-50">
+                        <div class="w-8 h-8 flex items-center justify-center bg-gray-800 rounded mr-3">
+                            <i class="fas fa-arrow-left neon-blue"></i>
+                        </div>
+                        <span>Move Left</span>
+                    </div>
+                    <div class="flex items-center p-2 rounded bg-gray-900 bg-opacity-50">
+                        <div class="w-8 h-8 flex items-center justify-center bg-gray-800 rounded mr-3">
+                            <i class="fas fa-arrow-right neon-blue"></i>
+                        </div>
+                        <span>Move Right</span>
+                    </div>
+                    <div class="flex items-center p-2 rounded bg-gray-900 bg-opacity-50">
+                        <div class="w-8 h-8 flex items-center justify-center bg-gray-800 rounded mr-3">
+                            <i class="fas fa-arrow-down neon-blue"></i>
+                        </div>
+                        <span>Soft Drop</span>
+                    </div>
+                    <div class="flex items-center p-2 rounded bg-gray-900 bg-opacity-50">
+                        <div class="w-8 h-8 flex items-center justify-center bg-gray-800 rounded mr-3">
+                            <i class="fas fa-arrow-up neon-blue"></i>
+                        </div>
+                        <span>Rotate</span>
+                    </div>
+                    <div class="flex items-center p-2 rounded bg-gray-900 bg-opacity-50">
+                        <div class="w-8 h-8 flex items-center justify-center bg-gray-800 rounded mr-3">
+                            <i class="fas fa-space-shuttle neon-yellow"></i>
+                        </div>
+                        <span>Hard Drop</span>
+                    </div>
+                    <div class="flex items-center p-2 rounded bg-gray-900 bg-opacity-50">
+                        <div class="w-8 h-8 flex items-center justify-center bg-gray-800 rounded mr-3">
+                            <i class="fas fa-pause neon-pink"></i>
+                        </div>
+                        <span>Pause</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Game Over Modal -->
+    <div id="gameOverModal" class="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center hidden z-50">
+        <div class="panel p-8 max-w-md w-full mx-4 relative" style="background: linear-gradient(145deg, rgba(15, 15, 35, 0.9), rgba(30, 10, 50, 0.9));">
+            <div class="absolute -inset-1 rounded-lg bg-gradient-to-r from-blue-500 to-purple-500 opacity-20 blur"></div>
+            <div class="relative">
+                <h2 class="text-3xl font-bold neon-text neon-pink mb-6 text-center">GAME OVER</h2>
+                <p class="text-center mb-2">Your score:</p>
+                <div id="finalScore" class="text-5xl font-bold neon-text neon-green text-center mb-6">0</div>
+                
+                <div class="mb-6">
+                    <label for="playerName" class="block text-sm uppercase tracking-wider opacity-70 mb-2">Enter your name</label>
+                    <input type="text" id="playerName" class="w-full bg-gray-900 bg-opacity-50 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500 transition" maxlength="12" placeholder="CYBER_HERO">
+                </div>
+                
+                <button id="saveScoreBtn" class="button-futuristic w-full py-3 mb-3">
+                    <i class="fas fa-save mr-2"></i> SAVE SCORE
+                </button>
+                
+                <button id="modalRestartBtn" class="button-futuristic w-full py-3 bg-opacity-10">
+                    <i class="fas fa-redo mr-2"></i> PLAY AGAIN
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Footer -->
+    <footer class="mt-12 text-center text-sm opacity-50">
+        <p>© 2023 NEON TETRIS | Futuristic Arcade Experience</p>
+    </footer>
+
+    <script>
+        // Game constants
+        const COLS = 10;
+        const ROWS = 20;
+        const BLOCK_SIZE = 30;
+        const NEXT_PIECE_SIZE = 25;
+        
+        // Scoring system
+        const SCORE = {
+            SINGLE: 100,
+            DOUBLE: 300,
+            TRIPLE: 500,
+            TETRIS: 800,
+            SOFT_DROP: 1,
+            HARD_DROP: 2
+        };
+        
+        // Level speed (milliseconds)
+        const LEVEL_SPEED = [
+            800, 720, 630, 550, 470, 380, 300, 220, 130, 100,
+            80, 80, 80, 70, 70, 70, 50, 50, 30, 30,
+            20, 20, 20, 15, 15, 15, 10, 10, 5, 5
+        ];
+        
+        // Piece colors
+        const COLORS = [
+            null,
+            '#0ff0fc', // I - neon blue
+            '#9d00ff', // J - neon purple
+            '#fff01f', // L - neon yellow
+            '#00ff7f', // O - neon green
+            '#ff2ced', // S - neon pink
+            'linear-gradient(145deg, #9d00ff, #0ff0fc)', // T - purple to blue
+            'linear-gradient(145deg, #ff2ced, #fff01f)'  // Z - pink to yellow
+        ];
+        
+        // Piece shapes
+        const SHAPES = [
+            null,
+            [[0, 0, 0, 0], [1, 1, 1, 1], [0, 0, 0, 0], [0, 0, 0, 0]], // I
+            [[2, 0, 0], [2, 2, 2], [0, 0, 0]],                         // J
+            [[0, 0, 3], [3, 3, 3], [0, 0, 0]],                         // L
+            [[0, 4, 4], [0, 4, 4], [0, 0, 0]],                         // O
+            [[0, 5, 5], [5, 5, 0], [0, 0, 0]],                         // S
+            [[0, 6, 0], [6, 6, 6], [0, 0, 0]],                         // T
+            [[7, 7, 0], [0, 7, 7], [0, 0, 0]]                          // Z
+        ];
+        
+        // Game variables
+        let canvas = document.getElementById('gameCanvas');
+        let ctx = canvas.getContext('2d');
+        let nextPieceCanvas = document.getElementById('nextPieceCanvas');
+        let nextPieceCtx = nextPieceCanvas.getContext('2d');
+        
+        let board = createMatrix(COLS, ROWS);
+        let piece = null;
+        let nextPiece = null;
+        let score = 0;
+        let level = 1;
+        let lines = 0;
+        let gameInterval = null;
+        let dropInterval = null;
+        let isPaused = false;
+        let isGameOver = false;
+        let gameRunning = false;
+        let soundEnabled = true;
+        
+        // Leaderboard data
+        let leaderboard = JSON.parse(localStorage.getItem('neonTetrisLeaderboard')) || [];
+        
+        // DOM elements
+        const scoreDisplay = document.getElementById('score');
+        const levelDisplay = document.getElementById('level');
+        const linesDisplay = document.getElementById('lines');
+        const leaderboardElement = document.getElementById('leaderboard');
+        const startBtn = document.getElementById('startBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const soundBtn = document.getElementById('soundBtn');
+        const restartBtn = document.getElementById('restartBtn');
+        const modalRestartBtn = document.getElementById('modalRestartBtn');
+        const gameOverModal = document.getElementById('gameOverModal');
+        const gameOverlay = document.getElementById('gameOverlay');
+        const finalScoreDisplay = document.getElementById('finalScore');
+        const playerNameInput = document.getElementById('playerName');
+        const saveScoreBtn = document.getElementById('saveScoreBtn');
+        
+        // Initialize the game
+        function initGame() {
+            // Clear the board
+            board = createMatrix(COLS, ROWS);
+            
+            // Reset game stats
+            score = 0;
+            level = 1;
+            lines = 0;
+            isGameOver = false;
+            
+            // Update displays
+            updateScoreDisplay();
+            levelDisplay.textContent = level;
+            linesDisplay.textContent = lines;
+            
+            // Create first piece and next piece
+            nextPiece = createPiece(Math.floor(Math.random() * 7) + 1);
+            newPiece();
+            
+            // Draw initial state
+            draw();
+            drawNextPiece();
+            
+            // Hide game over overlay
+            gameOverlay.classList.add('hidden');
+        }
+        
+        // Create a matrix (2D array)
+        function createMatrix(width, height) {
+            const matrix = [];
+            for (let i = 0; i < height; i++) {
+                matrix.push(new Array(width).fill(0));
+            }
+            return matrix;
+        }
+        
+        // Create a new piece
+        function createPiece(type) {
+            return {
+                position: {x: Math.floor(COLS / 2) - 1, y: 0},
+                shape: SHAPES[type],
+                type: type
+            };
+        }
+        
+        // Create a new piece and set next piece
+        function newPiece() {
+            piece = nextPiece;
+            nextPiece = createPiece(Math.floor(Math.random() * 7) + 1);
+            drawNextPiece();
+            
+            // Check if game over (new piece collides immediately)
+            if (collide()) {
+                gameOver();
+            }
+        }
+        
+        // Draw the game board and current piece
+        function draw() {
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw grid lines
+            ctx.strokeStyle = 'rgba(15, 240, 252, 0.05)';
+            for (let i = 0; i < COLS; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * BLOCK_SIZE, 0);
+                ctx.lineTo(i * BLOCK_SIZE, canvas.height);
+                ctx.stroke();
+            }
+            for (let i = 0; i < ROWS; i++) {
+                ctx.beginPath();
+                ctx.moveTo(0, i * BLOCK_SIZE);
+                ctx.lineTo(canvas.width, i * BLOCK_SIZE);
+                ctx.stroke();
+            }
+            
+            // Draw board
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    if (board[y][x]) {
+                        // Create gradient for each block
+                        const gradient = ctx.createRadialGradient(
+                            x * BLOCK_SIZE + BLOCK_SIZE/2, 
+                            y * BLOCK_SIZE + BLOCK_SIZE/2, 
+                            0,
+                            x * BLOCK_SIZE + BLOCK_SIZE/2, 
+                            y * BLOCK_SIZE + BLOCK_SIZE/2, 
+                            BLOCK_SIZE/2
+                        );
+                        
+                        if (board[y][x] === 1) { // I
+                            gradient.addColorStop(0, '#0ff0fc');
+                            gradient.addColorStop(1, 'rgba(15, 240, 252, 0.5)');
+                        } else if (board[y][x] === 2) { // J
+                            gradient.addColorStop(0, '#9d00ff');
+                            gradient.addColorStop(1, 'rgba(157, 0, 255, 0.5)');
+                        } else if (board[y][x] === 3) { // L
+                            gradient.addColorStop(0, '#fff01f');
+                            gradient.addColorStop(1, 'rgba(255, 240, 31, 0.5)');
+                        } else if (board[y][x] === 4) { // O
+                            gradient.addColorStop(0, '#00ff7f');
+                            gradient.addColorStop(1, 'rgba(0, 255, 127, 0.5)');
+                        } else if (board[y][x] === 5) { // S
+                            gradient.addColorStop(0, '#ff2ced');
+                            gradient.addColorStop(1, 'rgba(255, 44, 237, 0.5)');
+                        } else if (board[y][x] === 6) { // T
+                            gradient.addColorStop(0, '#9d00ff');
+                            gradient.addColorStop(1, '#0ff0fc');
+                        } else if (board[y][x] === 7) { // Z
+                            gradient.addColorStop(0, '#ff2ced');
+                            gradient.addColorStop(1, '#fff01f');
+                        }
+                        
+                        ctx.fillStyle = gradient;
+                        ctx.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+                        
+                        // Add inner glow
+                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(x * BLOCK_SIZE + 2, y * BLOCK_SIZE + 2, BLOCK_SIZE - 4, BLOCK_SIZE - 4);
+                    }
+                }
+            }
+            
+            // Draw current piece with glow effect
+            if (piece) {
+                piece.shape.forEach((row, y) => {
+                    row.forEach((value, x) => {
+                        if (value) {
+                            // Create gradient for each block
+                            const gradient = ctx.createRadialGradient(
+                                (piece.position.x + x) * BLOCK_SIZE + BLOCK_SIZE/2, 
+                                (piece.position.y + y) * BLOCK_SIZE + BLOCK_SIZE/2, 
+                                0,
+                                (piece.position.x + x) * BLOCK_SIZE + BLOCK_SIZE/2, 
+                                (piece.position.y + y) * BLOCK_SIZE + BLOCK_SIZE/2, 
+                                BLOCK_SIZE/2
+                            );
+                            
+                            if (value === 1) { // I
+                                gradient.addColorStop(0, '#0ff0fc');
+                                gradient.addColorStop(1, 'rgba(15, 240, 252, 0.5)');
+                            } else if (value === 2) { // J
+                                gradient.addColorStop(0, '#9d00ff');
+                                gradient.addColorStop(1, 'rgba(157, 0, 255, 0.5)');
+                            } else if (value === 3) { // L
+                                gradient.addColorStop(0, '#fff01f');
+                                gradient.addColorStop(1, 'rgba(255, 240, 31, 0.5)');
+                            } else if (value === 4) { // O
+                                gradient.addColorStop(0, '#00ff7f');
+                                gradient.addColorStop(1, 'rgba(0, 255, 127, 0.5)');
+                            } else if (value === 5) { // S
+                                gradient.addColorStop(0, '#ff2ced');
+                                gradient.addColorStop(1, 'rgba(255, 44, 237, 0.5)');
+                            } else if (value === 6) { // T
+                                gradient.addColorStop(0, '#9d00ff');
+                                gradient.addColorStop(1, '#0ff0fc');
+                            } else if (value === 7) { // Z
+                                gradient.addColorStop(0, '#ff2ced');
+                                gradient.addColorStop(1, '#fff01f');
+                            }
+                            
+                            ctx.fillStyle = gradient;
+                            ctx.fillRect(
+                                (piece.position.x + x) * BLOCK_SIZE,
+                                (piece.position.y + y) * BLOCK_SIZE,
+                                BLOCK_SIZE, BLOCK_SIZE
+                            );
+                            
+                            // Add inner glow
+                            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                            ctx.lineWidth = 1;
+                            ctx.strokeRect(
+                                (piece.position.x + x) * BLOCK_SIZE + 2,
+                                (piece.position.y + y) * BLOCK_SIZE + 2,
+                                BLOCK_SIZE - 4, BLOCK_SIZE - 4
+                            );
+                            
+                            // Add outer glow
+                            ctx.shadowColor = COLORS[value].startsWith('linear') ? '#ff2ced' : COLORS[value];
+                            ctx.shadowBlur = 10;
+                            ctx.fillRect(
+                                (piece.position.x + x) * BLOCK_SIZE,
+                                (piece.position.y + y) * BLOCK_SIZE,
+                                BLOCK_SIZE, BLOCK_SIZE
+                            );
+                            ctx.shadowBlur = 0;
+                        }
+                    });
+                });
+            }
+        }
+        
+        // Draw the next piece preview
+        function drawNextPiece() {
+            nextPieceCtx.clearRect(0, 0, nextPieceCanvas.width, nextPieceCanvas.height);
+            
+            if (nextPiece) {
+                nextPiece.shape.forEach((row, y) => {
+                    row.forEach((value, x) => {
+                        if (value) {
+                            // Create gradient for each block
+                            const gradient = nextPieceCtx.createRadialGradient(
+                                x * NEXT_PIECE_SIZE + NEXT_PIECE_SIZE/2 + 10, 
+                                y * NEXT_PIECE_SIZE + NEXT_PIECE_SIZE/2 + 10, 
+                                0,
+                                x * NEXT_PIECE_SIZE + NEXT_PIECE_SIZE/2 + 10, 
+                                y * NEXT_PIECE_SIZE + NEXT_PIECE_SIZE/2 + 10, 
+                                NEXT_PIECE_SIZE/2
+                            );
+                            
+                            if (value === 1) { // I
+                                gradient.addColorStop(0, '#0ff0fc');
+                                gradient.addColorStop(1, 'rgba(15, 240, 252, 0.5)');
+                            } else if (value === 2) { // J
+                                gradient.addColorStop(0, '#9d00ff');
+                                gradient.addColorStop(1, 'rgba(157, 0, 255, 0.5)');
+                            } else if (value === 3) { // L
+                                gradient.addColorStop(0, '#fff01f');
+                                gradient.addColorStop(1, 'rgba(255, 240, 31, 0.5)');
+                            } else if (value === 4) { // O
+                                gradient.addColorStop(0, '#00ff7f');
+                                gradient.addColorStop(1, 'rgba(0, 255, 127, 0.5)');
+                            } else if (value === 5) { // S
+                                gradient.addColorStop(0, '#ff2ced');
+                                gradient.addColorStop(1, 'rgba(255, 44, 237, 0.5)');
+                            } else if (value === 6) { // T
+                                gradient.addColorStop(0, '#9d00ff');
+                                gradient.addColorStop(1, '#0ff0fc');
+                            } else if (value === 7) { // Z
+                                gradient.addColorStop(0, '#ff2ced');
+                                gradient.addColorStop(1, '#fff01f');
+                            }
+                            
+                            nextPieceCtx.fillStyle = gradient;
+                            nextPieceCtx.fillRect(
+                                x * NEXT_PIECE_SIZE + 10,
+                                y * NEXT_PIECE_SIZE + 10,
+                                NEXT_PIECE_SIZE, NEXT_PIECE_SIZE
+                            );
+                            
+                            // Add inner glow
+                            nextPieceCtx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                            nextPieceCtx.lineWidth = 1;
+                            nextPieceCtx.strokeRect(
+                                x * NEXT_PIECE_SIZE + 12,
+                                y * NEXT_PIECE_SIZE + 12,
+                                NEXT_PIECE_SIZE - 4, NEXT_PIECE_SIZE - 4
+                            );
+                        }
+                    });
+                });
+            }
+        }
+        
+        // Check for collisions
+        function collide() {
+            for (let y = 0; y < piece.shape.length; y++) {
+                for (let x = 0; x < piece.shape[y].length; x++) {
+                    if (piece.shape[y][x] !== 0 &&
+                        (piece.position.y + y >= ROWS ||
+                         piece.position.x + x < 0 ||
+                         piece.position.x + x >= COLS ||
+                         board[piece.position.y + y][piece.position.x + x])) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+        
+        // Rotate the piece
+        function rotate() {
+            const originalShape = piece.shape;
+            
+            // Transpose matrix
+            for (let y = 0; y < piece.shape.length; y++) {
+                for (let x = 0; x < y; x++) {
+                    [piece.shape[x][y], piece.shape[y][x]] = [piece.shape[y][x], piece.shape[x][y]];
+                }
+            }
+            
+            // Reverse each row
+            piece.shape.forEach(row => row.reverse());
+            
+            // If rotation causes collision, revert
+            if (collide()) {
+                piece.shape = originalShape;
+            }
+        }
+        
+        // Move the piece left
+        function moveLeft() {
+            piece.position.x--;
+            if (collide()) {
+                piece.position.x++;
+            }
+        }
+        
+        // Move the piece right
+        function moveRight() {
+            piece.position.x++;
+            if (collide()) {
+                piece.position.x--;
+            }
+        }
+        
+        // Move the piece down (soft drop)
+        function moveDown() {
+            piece.position.y++;
+            
+            if (collide()) {
+                piece.position.y--;
+                merge();
+                clearLines();
+                newPiece();
+            }
+            
+            // Add to score for soft drop
+            addScore(SCORE.SOFT_DROP);
+        }
+        
+        // Hard drop the piece
+        function hardDrop() {
+            while (!collide()) {
+                piece.position.y++;
+            }
+            piece.position.y--;
+            
+            // Add to score for hard drop
+            addScore(SCORE.HARD_DROP * (piece.position.y));
+            
+            merge();
+            clearLines();
+            newPiece();
+        }
+        
+        // Merge the piece with the board
+        function merge() {
+            piece.shape.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value) {
+                        board[piece.position.y + y][piece.position.x + x] = value;
+                    }
+                });
+            });
+        }
+        
+        // Clear completed lines
+        function clearLines() {
+            let linesCleared = 0;
+            
+            outer: for (let y = ROWS - 1; y >= 0; y--) {
+                for (let x = 0; x < COLS; x++) {
+                    if (board[y][x] === 0) {
+                        continue outer;
+                    }
+                }
+                
+                // Remove the line
+                const row = board.splice(y, 1)[0].fill(0);
+                board.unshift(row);
+                y++; // Check the same row again
+                linesCleared++;
+            }
+            
+            // Add to score based on lines cleared
+            if (linesCleared > 0) {
+                switch (linesCleared) {
+                    case 1: addScore(SCORE.SINGLE * level); break;
+                    case 2: addScore(SCORE.DOUBLE * level); break;
+                    case 3: addScore(SCORE.TRIPLE * level); break;
+                    case 4: addScore(SCORE.TETRIS * level); break;
+                }
+                
+                lines += linesCleared;
+                linesDisplay.textContent = lines;
+                
+                // Level up every 10 lines
+                const newLevel = Math.floor(lines / 10) + 1;
+                if (newLevel > level) {
+                    level = newLevel;
+                    levelDisplay.textContent = level;
+                    
+                    // Increase game speed
+                    if (gameRunning) {
+                        clearInterval(dropInterval);
+                        dropInterval = setInterval(moveDown, LEVEL_SPEED[Math.min(level - 1, LEVEL_SPEED.length - 1)]);
+                    }
+                    
+                    // Play level up sound
+                    if (soundEnabled) {
+                        playSound('levelUp');
+                    }
+                }
+                
+                // Play clear sound
+                if (soundEnabled) {
+                    playSound('clear');
+                }
+            }
+        }
+        
+        // Add to score with animation
+        function addScore(points) {
+            score += points;
+            updateScoreDisplay();
+        }
+        
+        // Update score display with animation
+        function updateScoreDisplay() {
+            scoreDisplay.textContent = score;
+            scoreDisplay.classList.add('pulse');
+            setTimeout(() => {
+                scoreDisplay.classList.remove('pulse');
+            }, 500);
+        }
+        
+        // Game over
+        function gameOver() {
+            clearInterval(dropInterval);
+            gameRunning = false;
+            isGameOver = true;
+            
+            // Update UI
+            startBtn.disabled = false;
+            pauseBtn.disabled = true;
+            
+            // Show game over overlay
+            gameOverlay.classList.remove('hidden');
+            
+            // Show game over modal
+            finalScoreDisplay.textContent = score;
+            gameOverModal.classList.remove('hidden');
+            
+            // Focus on name input
+            playerNameInput.focus();
+            
+            // Play game over sound
+            if (soundEnabled) {
+                playSound('gameOver');
+            }
+        }
+        
+        // Start game
+        function startGame() {
+            if (gameRunning) return;
+            
+            initGame();
+            gameRunning = true;
+            isPaused = false;
+            
+            // Update UI
+            startBtn.disabled = true;
+            pauseBtn.disabled = false;
+            
+            // Start game loop
+            dropInterval = setInterval(moveDown, LEVEL_SPEED[Math.min(level - 1, LEVEL_SPEED.length - 1)]);
+            
+            // Play game start sound
+            if (soundEnabled) {
+                playSound('start');
+            }
+        }
+        
+        // Pause/resume game
+        function togglePause() {
+            if (!gameRunning) return;
+            
+            isPaused = !isPaused;
+            
+            if (isPaused) {
+                clearInterval(dropInterval);
+                pauseBtn.innerHTML = '<i class="fas fa-play mr-2"></i> RESUME';
+                
+                // Play pause sound
+                if (soundEnabled) {
+                    playSound('pause');
+                }
+            } else {
+                dropInterval = setInterval(moveDown, LEVEL_SPEED[Math.min(level - 1, LEVEL_SPEED.length - 1)]);
+                pauseBtn.innerHTML = '<i class="fas fa-pause mr-2"></i> PAUSE';
+                
+                // Play resume sound
+                if (soundEnabled) {
+                    playSound('resume');
+                }
+            }
+        }
+        
+        // Toggle sound
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            soundBtn.innerHTML = soundEnabled 
+                ? '<i class="fas fa-volume-up mr-2"></i> SOUND ON' 
+                : '<i class="fas fa-volume-mute mr-2"></i> SOUND OFF';
+            
+            // Play toggle sound
+            if (soundEnabled) {
+                playSound('toggle');
+            }
+        }
+        
+        // Play sound effects
+        function playSound(type) {
+            if (!soundEnabled) return;
+            
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            // Set sound parameters based on type
+            switch (type) {
+                case 'start':
+                    oscillator.type = 'sine';
+                    oscillator.frequency.value = 880;
+                    gainNode.gain.value = 0.1;
+                    oscillator.start();
+                    oscillator.stop(audioContext.currentTime + 0.3);
+                    break;
+                    
+                case 'clear':
+                    oscillator.type = 'square';
+                    oscillator.frequency.value = 440;
+                    gainNode.gain.value = 0.1;
+                    oscillator.start();
+                    oscillator.stop(audioContext.currentTime + 0.1);
+                    break;
+                    
+                case 'levelUp':
+                    oscillator.type = 'sawtooth';
+                    oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(1760, audioContext.currentTime + 0.5);
+                    gainNode.gain.value = 0.1;
+                    oscillator.start();
+                    oscillator.stop(audioContext.currentTime + 0.5);
+                    break;
+                    
+                case 'gameOver':
+                    oscillator.type = 'sine';
+                    oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(55, audioContext.currentTime + 1);
+                    gainNode.gain.value = 0.1;
+                    oscillator.start();
+                    oscillator.stop(audioContext.currentTime + 1);
+                    break;
+                    
+                case 'pause':
+                    oscillator.type = 'triangle';
+                    oscillator.frequency.value = 220;
+                    gainNode.gain.value = 0.1;
+                    oscillator.start();
+                    oscillator.stop(audioContext.currentTime + 0.1);
+                    break;
+                    
+                case 'resume':
+                    oscillator.type = 'triangle';
+                    oscillator.frequency.value = 440;
+                    gainNode.gain.value = 0.1;
+                    oscillator.start();
+                    oscillator.stop(audioContext.currentTime + 0.1);
+                    break;
+                    
+                case 'toggle':
+                    oscillator.type = 'sine';
+                    oscillator.frequency.value = 660;
+                    gainNode.gain.value = 0.1;
+                    oscillator.start();
+                    oscillator.stop(audioContext.currentTime + 0.1);
+                    break;
+            }
+        }
+        
+        // Save score to leaderboard
+        function saveScore() {
+            const playerName = playerNameInput.value.trim() || 'CYBER_HERO';
+            
+            // Add to leaderboard
+            leaderboard.push({
+                name: playerName.toUpperCase(),
+                score: score,
+                level: level,
+                lines: lines,
+                date: new Date().toLocaleDateString()
+            });
+            
+            // Sort by score (descending)
+            leaderboard.sort((a, b) => b.score - a.score);
+            
+            // Keep only top 10 scores
+            if (leaderboard.length > 10) {
+                leaderboard = leaderboard.slice(0, 10);
+            }
+            
+            // Save to localStorage
+            localStorage.setItem('neonTetrisLeaderboard', JSON.stringify(leaderboard));
+            
+            // Update leaderboard display
+            updateLeaderboard();
+            
+            // Hide modal
+            gameOverModal.classList.add('hidden');
+            
+            // Reset input
+            playerNameInput.value = '';
+            
+            // Play save sound
+            if (soundEnabled) {
+                playSound('toggle');
+            }
+        }
+        
+        // Update leaderboard display
+        function updateLeaderboard() {
+            // Clear current leaderboard
+            leaderboardElement.innerHTML = '';
+            
+            if (leaderboard.length === 0) {
+                leaderboardElement.innerHTML = `
+                    <div class="leaderboard-item flex justify-between items-center py-2 px-3 rounded">
+                        <span class="text-gray-400">No scores yet</span>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Add each leaderboard entry
+            leaderboard.forEach((entry, index) => {
+                const leaderboardItem = document.createElement('div');
+                leaderboardItem.className = 'leaderboard-item flex justify-between items-center py-2 px-3 rounded';
+                
+                // Different colors for top 3 positions
+                let positionColor = 'text-gray-400';
+                if (index === 0) positionColor = 'text-yellow-400';
+                else if (index === 1) positionColor = 'text-gray-300';
+                else if (index === 2) positionColor = 'text-orange-400';
+                
+                leaderboardItem.innerHTML = `
+                    <div class="flex items-center">
+                        <span class="${positionColor} w-6 text-right mr-3 font-bold">${index + 1}.</span>
+                        <span class="${index === 0 ? 'neon-text neon-yellow' : ''}">${entry.name}</span>
+                    </div>
+                    <div class="flex items-center">
+                        <span class="${index === 0 ? 'neon-text neon-green' : 'text-green-400'} mr-2 font-bold">${entry.score}</span>
+                        <span class="text-xs opacity-50">L${entry.level} ${entry.lines}L</span>
+                    </div>
+                `;
+                leaderboardElement.appendChild(leaderboardItem);
+            });
+        }
+        
+        // Create floating particles
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            const particleCount = 30;
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.classList.add('particle');
+                
+                // Random size
+                const size = Math.random() * 5 + 1;
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                
+                // Random position
+                particle.style.left = `${Math.random() * 100}%`;
+                particle.style.top = `${Math.random() * 100}%`;
+                
+                // Random color
+                const colors = ['#0ff0fc', '#ff2ced', '#9d00ff', '#00ff7f', '#fff01f'];
+                particle.style.background = colors[Math.floor(Math.random() * colors.length)];
+                
+                // Random animation duration
+                const duration = Math.random() * 20 + 10;
+                particle.style.animation = `float ${duration}s linear infinite`;
+                particle.style.animationDelay = `${Math.random() * 10}s`;
+                
+                particlesContainer.appendChild(particle);
+            }
+        }
+        
+        // Keyboard controls
+        function handleKeyDown(e) {
+            if (!gameRunning || isPaused || isGameOver) return;
+            
+            switch (e.keyCode) {
+                case 37: // Left arrow
+                    moveLeft();
+                    draw();
+                    break;
+                case 39: // Right arrow
+                    moveRight();
+                    draw();
+                    break;
+                case 40: // Down arrow
+                    moveDown();
+                    draw();
+                    break;
+                case 38: // Up arrow
+                    rotate();
+                    draw();
+                    break;
+                case 32: // Space
+                    hardDrop();
+                    draw();
+                    break;
+                case 80: // P
+                    togglePause();
+                    break;
+            }
+        }
+        
+        // Event listeners
+        document.addEventListener('keydown', handleKeyDown);
+        startBtn.addEventListener('click', startGame);
+        pauseBtn.addEventListener('click', togglePause);
+        soundBtn.addEventListener('click', toggleSound);
+        restartBtn.addEventListener('click', startGame);
+        modalRestartBtn.addEventListener('click', startGame);
+        saveScoreBtn.addEventListener('click', saveScore);
+        
+        // Initialize leaderboard and particles
+        updateLeaderboard();
+        createParticles();
+        
+        // Initial draw
+        draw();
+        drawNextPiece();
+        
+        // Easter egg - Konami code
+        const konamiCode = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
+        let konamiIndex = 0;
+        
+        document.addEventListener('keydown', (e) => {
+            if (e.key === konamiCode[konamiIndex]) {
+                konamiIndex++;
+                if (konamiIndex === konamiCode.length) {
+                    // Konami code entered!
+                    document.body.style.background = 'linear-gradient(45deg, #ff00ff, #00ffff, #ffff00, #ff00ff)';
+                    document.body.style.backgroundSize = '400% 400%';
+                    document.body.style.animation = 'rainbow 5s ease infinite';
+                    
+                    // Add rainbow animation
+                    const style = document.createElement('style');
+                    style.innerHTML = `
+                        @keyframes rainbow {
+                            0% { background-position: 0% 50%; }
+                            50% { background-position: 100% 50%; }
+                            100% { background-position: 0% 50%; }
+                        }
+                    `;
+                    document.head.appendChild(style);
+                    
+                    konamiIndex = 0;
+                    
+                    // Play special sound
+                    if (soundEnabled) {
+                        playSound('levelUp');
+                    }
+                }
+            } else {
+                konamiIndex = 0;
+            }
+        });
+    </script>
+<p style="border-radius: 8px; text-align: center; font-size: 12px; color: #fff; margin-top: 16px;position: fixed; left: 8px; bottom: 8px; z-index: 10; background: rgba(0, 0, 0, 0.8); padding: 4px 8px;">Made with <img src="https://enzostvs-deepsite.hf.space/logo.svg" alt="DeepSite Logo" style="width: 16px; height: 16px; vertical-align: middle;display:inline-block;margin-right:3px;filter:brightness(0) invert(1);"><a href="https://enzostvs-deepsite.hf.space" style="color: #fff;text-decoration: underline;" target="_blank" >DeepSite</a> - 🧬 <a href="https://enzostvs-deepsite.hf.space?remix=nosleg/retro-snake" style="color: #fff;text-decoration: underline;" target="_blank" >Remix</a></p></body>
+</html>

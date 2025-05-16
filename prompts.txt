@@ -1,0 +1,3 @@
+crie um site com jogo snake que o jogo funcione e gere pontos com ranque use cores retro com estilo fliperama deixe o site em ingles
+crie um site com jogo funcional tetris estilo fliperama com pontuação e rank todo em ingles
+crie um site com jogo tetris funcional estilo futurista com cores neons muito profisional site todo em ingles
